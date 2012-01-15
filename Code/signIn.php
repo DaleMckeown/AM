@@ -4,7 +4,7 @@ header("Cache-Control: no-cache"); // Ensures IE does not cache the page
 ob_start();
 /****************************************/
 /*      Copyright (c) Dale Mckeown		*/
-/*       Last edited: 05/01/2012        */
+/*       Last edited: 15/01/2012        */
 /*        www.dalemckeown.co.uk  		*/
 /****************************************/
 
@@ -130,13 +130,8 @@ $currentPrototypeLink = $prototypes['currentPrototypeLink'];
 							'params' => $params
 						);								
 						$result = getNucleusData($db, $data);
-						
 						$_SESSION['Access_Token'] = $result->{'access_token'};
 						$accessTokenJustSet = true; // Var to detect if user has just logged on
-					}
-					else{
-						// Try..
-						echo "Access_Token: " . $_SESSION['Access_Token'] . "<br>";
 					}
 					// Data request from nucleus
 					$params = array('access_token' => $_SESSION['Access_Token']);
@@ -151,16 +146,18 @@ $currentPrototypeLink = $prototypes['currentPrototypeLink'];
 						
 						$json = $result['Data'];
 						// Set some session data
+						
+						//Chop all all middle names out.
+						if(substr_count($json['results'][0]['name'], " ") > 1){
+							$f = strpos($json['results'][0]['name'], " ");
+							$l = strrpos($json['results'][0]['name'], " ");
+							$first = substr($json['results'][0]['name'], 0, $f);
+							$sur = substr($json['results'][0]['name'], $l+1);						
+						}					
 						$_SESSION['User_ID'] = $json['results'][0]['id'];
-						$_SESSION['User_Name'] = $json['results'][0]['name'];
+						$_SESSION['User_Name'] = $first . " " . $sur;
 						$_SESSION['User_Type'] = $json['results'][0]['type'];
 						
-						/*else if($_SESSION['User_Type'] == "staff"){
-							echo $person_title = $json['results'][0]['title'];
-							echo $person_department = $json['results'][0]['department'];
-							echo $person_job = $json['results'][0]['job'];
-							echo $person_jobtitle = $json['results'][0]['jobtitle'];
-						}*/
 						if($accessTokenJustSet == true){ // If the access token was just set in this script (prevents re-authenticating user if they return ti this script)
 							// Search the mongodb "am_users" collection for this user id
 							$collection = $db->am_users;
@@ -200,6 +197,7 @@ $currentPrototypeLink = $prototypes['currentPrototypeLink'];
 							// Update  am_users 'Last_Sign-in' and 'Access_Token' with new mongo_id and access token
 							$collection = $db->am_users; // Change to relevant collection
 							$collection->update(array("User_ID" => $_SESSION['User_ID']), array('$set' => array("Access_Token" => $_SESSION['Access_Token'], "Last_Sign-in" => $mongo_id)), array("safe" => true));
+							
 						}// End if($accessTokenJustSet == true){
 						// Redirect the user to the prototype if specified, or home if empty
 						header("Location: http://www.am.dalemckeown.co.uk/" . $_SESSION['Prototype_ID']);

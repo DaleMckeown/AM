@@ -191,9 +191,10 @@
 			$result = getNucleusData($mongo_db, $data);
 			if($result['Success'] == true){ // If getNucleusData does not return an error
 				$json = $result['Data'];
-				
-				$person_faculty = $json['results'][0]['groups']['faculty'];
-				$person_level = $json['results'][0]['groups']['level'][0];
+				//$person_faculty = $json['results'][0]['groups']['faculty'];
+				$level = $json['results'][0]['groups'][13];
+				$needle = strpos($level, "=") +1;
+				$person_course_level = substr($level, $needle);
 				$person_course_id = $json['results'][0]['course']['id'];
 				$person_course_title = $json['results'][0]['course']['title'];
 				
@@ -201,15 +202,17 @@
 				echo "<br>Units: <br>";
 				asort($person_units);
 				foreach ($person_units as $unit){
-					echo "id: " . $unit['id'] . " title: " . $unit['title'];
+					echo "ID: " . $unit['id'] . " Title: " . $unit['title'];
 					echo "<br>";
 				}
 				
 				// Get data from Nucleus
-				$params = array('access_token' => $_SESSION['Access_Token']);
+				/*$params = array(
+					'access_token' => $_SESSION['Access_Token']
+				);
 				$data = array(
 					'requestType' => 'Nucleus_Data',
-					'endPoint' => '/v1/calendars/user?',
+					'endPoint' => '/v1/events/agenda/',
 					'params' => $params
 				);	
 				$result2 = getNucleusData($mongo_db, $data);
@@ -222,7 +225,7 @@
 					echo "<h4>Error Code: " . $result2['Error_Code'] . "</h4>";
 					echo "<h4>Error Message: " . $result2['Error_Message'] . "</h4>";
 					echo "<img src =\"" . $result2['Error_Image'] . ".jpg\">";
-				}
+				}*/
 			}// End if($result['Success'] == true){
 			else{		
 				echo "<h2>" . $result['Error_Type'] . "</h2>";
@@ -231,6 +234,13 @@
 				echo "<img src =\"" . $result['Error_Image'] . ".jpg\">";
 			}
 		}// End if($_SESSION['User_Type'] == "student"){
+			
+		/*else if($_SESSION['User_Type'] == "staff"){
+			echo $person_title = $json['results'][0]['title'];
+			echo $person_department = $json['results'][0]['department'];
+			echo $person_job = $json['results'][0]['job'];
+			echo $person_jobtitle = $json['results'][0]['jobtitle'];
+		}*/
 		else{
 			echo "Other Set";
 		}

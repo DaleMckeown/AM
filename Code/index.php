@@ -4,7 +4,7 @@ header("Cache-Control: no-cache"); // Ensures IE does not cache the page
 
 /****************************************/
 /*      Copyright (c) Dale Mckeown		*/
-/*       Last edited: 30/12/2011        */
+/*       Last edited: 15/01/2012        */
 /*        www.dalemckeown.co.uk  		*/
 /****************************************/
 
@@ -54,22 +54,15 @@ $prototypeDescriptionsArray[] = "<p>The first major prototype. It is concerned w
 $prototypeDescriptionsArray[] = "<p>The second major prototype, focussing on development of the application, including:
 	<ul>
 		<li>Design & implementation of the <a href=\"http://mongodb.org\">MongoDB</a> database structure.</li>
-		<li>Design & implementation of persona's data sets for use as test data within the application.</li>
-	</ul>
-	</p>";
-$prototypeDescriptionsArray[] = "<p>The third major prototype, focussing on attendance data assessment, including:
-	<ul>
-		<li>Design & implementation of </li>
-		<li>Design & implementation of </li>
+		<li>Design & implementation of pseudo attendance data based on real timetabling data.</li>
 	</ul>
 	</p>";
 	
 $futurePrototypeArray = array();
 $futurePrototypeArray[] = "<h3>Prototype 3 (offline)</h3>
-	<p>This prototype is designed to connect AM users to the pseudo data sets created in prototype 2. The following tasks are neccessary:
+	<p>This prototype is focussed on the staff development side of the data.
 	<ul>
-		<li>Map AM Student users to individual data sets to create a pseudo attendance assessment based on raw data.</li>
-		<li>Map AM Staff users to grouped data sets to create a pseudo attendance assessment based on raw data.</li>
+		<li>Map AM Staff users  to their student's attendance data, and collect the data into groups.</li>
 	</ul>
 	</p>";
 	
