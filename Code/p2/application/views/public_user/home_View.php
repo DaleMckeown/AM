@@ -1,6 +1,7 @@
 <?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 	session_start();
 	$this->load->view('public_user/includes/include_Header', $this->data);
+	$start_time = microtime();
 	//Set up some functions - should be put in seperate file in future versions
 	function randomID($length){
 		$random= "";
@@ -120,6 +121,50 @@
 		return $return;
 		}
 	}
+	function getAcademicDates(){
+		
+		//set the teaching weeks
+		$teaching_weeks = array(
+			'1','2','3','4','5','6','7','8','9','10','11','16','17',
+			'18','19','20','21','22','23','24','25','26','31','32'
+		);
+		
+		
+		//calculate the start of the academic year
+		$this_month = date('m');
+		$this_year = date('y');
+		
+		if($this_month >= 9){
+			$academic_year = date("Y");
+			$year_code = $this_year . ($this_year+1);
+		}
+		else{
+			$academic_year = ($this_year-1);
+			$year_code = ($this_year-1) . $this_year;
+		}
+		
+		//get the day for september 1st of the academic year
+		$september = mktime(0, 0, 0, date(9), 1, $academic_year);
+		//add two weeks
+		$twoweeks = strtotime('+2 weeks' ,$september);
+		$adddays = 0;
+		$dayofweek = date('N', $twoweeks);
+		//If the day is not a monday, work out how many days to add to get to monday (back to one)
+		if($dayofweek != 1){
+			$adddays = 8 - $dayofweek;
+		}
+		//generate a unix timestamp for the start of that day.
+		$first_week = strtotime('+' . $adddays . ' days' ,$twoweeks);
+		//add some weeks to populate the year 
+		$last_week = strtotime('+32 weeks' ,$first_week);
+		return array(
+			'year_code' => $year_code,
+			'academic_year' => $academic_year,
+			'first_week_start' => $first_week,
+			'last_week_start' => $last_week,
+			'teaching_weeks' => $teaching_weeks 
+		);
+	}
 	
 	if(!empty($_SESSION['Prototype_ID'])){
 		unset($_SESSION['Prototype_ID']);
@@ -226,6 +271,108 @@
 					echo "<h4>Error Message: " . $result2['Error_Message'] . "</h4>";
 					echo "<img src =\"" . $result2['Error_Image'] . ".jpg\">";
 				}*/
+				
+				//generate some data to implement nucleus result (looseley)
+				$timeStart = array();
+				$timeEnd = array();
+				
+				//software development
+				$timeStart[] = 1327489200;
+				$timeEnd[] = 1327496400;
+				//professional practice
+				$timeStart[] = 0;
+				$timeEnd[] = 0;			
+				//project
+				$timeStart[] = 0;
+				$timeEnd[] = 0;
+				//project preparation
+				$timeStart[] = 0;
+				$timeEnd[] = 0;
+				//computer vision and robotics
+				$timeStart[] = 1327413600;
+				$timeEnd[] = 1327417200;
+				//create new array with all data
+				$lectureArray = array();
+				$count = 0;
+				foreach($person_units  as $unit){
+					if($timeStart[$count] != 0){
+						$day = date('d', $timeStart[$count]);
+						$start_hour = date('h', $timeStart[$count]);
+						$start_minutes = date('i', $timeStart[$count]);
+						$start_time = $start_hour . ":" . $start_minutes;
+						$end_hour = date('h', $timeEnd[$count]);
+						$end_minutes = date('i', $timeEnd[$count]);
+						$end_time = $end_hour . ":" . $end_minutes;
+						$lectureArray[] = array(
+							'id' => $unit['id'],
+							'title' => $unit['title'],
+							'day' => $day,
+							'start_time' => $start_time,
+							'end_time' => $end_time
+						);
+					}
+					$count++;
+				}
+				
+				//generate year code, academic year start, first and last week timestamps.
+				$dateDetails = getAcademicDates();
+				
+				$first_week_start = $dateDetails['first_week_start'];
+				$last_week_start = $dateDetails['last_week_start'];
+				$teaching_weeks = $dateDetails['teaching_weeks'];
+				
+				$iterate_week = $first_week_start;
+				$week_seconds = ((60 * 60) * 24) * 7; //full week
+				$week_end_seconds = (((60 * 60) * 24) * 7) - 1; //7 full week - 1 second
+				$week_id = 0;
+				
+				$weekArray = array();
+				while($iterate_week <= $last_week_start){
+					
+					//perform some vital calculations.
+					//calculate the end of the week unix timestamp
+					$week_end = $iterate_week + $week_end_seconds;
+					//if the current week is in the teaching weeks array
+					if(in_array($week_id, $teaching_weeks)){
+						$teaching_week = 1;
+					}
+					else{
+						$teaching_week = 0;
+					}
+					//add a new array to the week array using relevnt data
+					$weekArray[] = array(
+						'week_id' => $week_id,
+						'teaching_week' => $teaching_week,
+						'week_start' => $iterate_week,
+						'week_end' => $week_end
+					);
+					//increment conditions
+					$week_id++;
+					$iterate_week = $iterate_week + $week_seconds;
+				}
+				
+				$current_time = time();
+				echo "<h2>Weekly Lecture Data</h2>";
+				foreach($weekArray as $week){
+					if($current_time >= $week['week_start']){
+						if($week['teaching_week'] == 1){
+							echo "<h3>Week " . $week['week_id'] . "</h3>";
+							foreach($lectureArray as $lecture){
+								var_dump($lecture);
+								echo "<br>";
+							}
+							var_dump($week);
+							echo "<br><br>";
+						}
+						else{
+							echo "<h3>Week " . $week['week_id'] . "</h3> This week was not a teaching week. Lucky you!<br>";
+						}
+					}
+					else{
+						echo "Week " . $week['week_id'] . " has not yet started!<br>";
+					}
+				}
+				
 			}// End if($result['Success'] == true){
 			else{		
 				echo "<h2>" . $result['Error_Type'] . "</h2>";
@@ -248,7 +395,12 @@
     </div>
     </section>
     
- <?php $this->load->view('public_user/includes/include_Footer'); ?>
+	<?php 
+ 
+	$end_time = microtime();
+	echo "Generated in: " . ($end_time  - $start_time) . " seconds.";
+ 
+	$this->load->view('public_user/includes/include_Footer'); ?>
 
 <!-- Put all JavaScript code below this line -->
 <script src="http://c94471.r71.cf3.rackcdn.com/jquery.js" type="text/javascript"></script>
