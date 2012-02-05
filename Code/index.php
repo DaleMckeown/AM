@@ -4,7 +4,7 @@ header("Cache-Control: no-cache"); // Ensures IE does not cache the page
 
 /****************************************/
 /*      Copyright (c) Dale Mckeown		*/
-/*       Last edited: 15/01/2012        */
+/*       Last edited: 02/02/2012        */
 /*        www.dalemckeown.co.uk  		*/
 /****************************************/
 
@@ -57,20 +57,17 @@ $prototypeDescriptionsArray[] = "<p>The second major prototype, focussing on dev
 		<li>Design & implementation of pseudo attendance data based on real timetabling data.</li>
 	</ul>
 	</p>";
+$prototypeDescriptionsArray[] = "<p>Prototype 3 will analyse intuitive ways to turn raw data into visual objects which may help users to interpret and understand the raw data, 
+while making the process fun. The jquery library <a href=\"http://www.jqplot.com\">jqPlot</a> will be used to represent the student attendance data.
+</p>";
 	
 $futurePrototypeArray = array();
-$futurePrototypeArray[] = "<h3>Prototype 3 (offline)</h3>
+$futurePrototypeArray[] = "<h3>Prototype 4 (offline)</h3>
 	<p>This prototype is focussed on the staff development side of the data.
 	<ul>
 		<li>Map AM Staff users  to their student's attendance data, and collect the data into groups.</li>
 	</ul>
 	</p>";
-	
-$futurePrototypeArray[] = "<h3>Prototype 4 (offline)</h3>
-<p>Prototype 4 will analyse intuitive ways to turn raw data into visual objects which may help users to interpret and understand the raw data, 
-while making the process fun. TBC. 
-
-</p>";
 $futurePrototypeArray[] = "<h3>Prototype 5 (offline)</h3>
 <p>Prototype 5 will involve two aspects. The first is social media connectivity (facebook, twitter, etc). The second aspects will involve a
  clean-up of the application, testing and bug fixing.
@@ -92,9 +89,7 @@ $futurePrototypeArray[] = "<h3>Prototype 5 (offline)</h3>
     <?php echo "
     <link rel=\"shortcut icon\" href=\"" . $currentPrototypeLink . "/application/third_party/images/favicon.ico\">
     <link rel=\"apple-touch-icon\" href=\"" . $currentPrototypeLink . "/application/third_party/images/appleIcon.png\"> 
-    
     <link rel=\"stylesheet\" href=\"http://c94471.r71.cf3.rackcdn.com/cwd.css\">
-    
     <link rel=\"stylesheet\" href=\"" . $currentPrototypeLink . "/application/third_party/css/override_Styles.css\">";
     ?>
     
@@ -184,7 +179,6 @@ $futurePrototypeArray[] = "<h3>Prototype 5 (offline)</h3>
             </p>
         </section>		
     </footer>
-    
     <!-- Put all JavaScript code below this line -->
     <script src="http://c94471.r71.cf3.rackcdn.com/jquery.js" type="text/javascript"></script>
     <!--[if (lt IE 9) & (!IEMobile)]>

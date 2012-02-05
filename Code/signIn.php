@@ -69,7 +69,6 @@ $currentPrototypeLink = $prototypes['currentPrototypeLink'];
             </hgroup>
         </section>	
     </header>
-    
     <nav class="cwd_container" role="navigation">
         <ul id="cwd_navigation" class="grid_12" role="navigation">
             <li><a href="/">Home</a></li>

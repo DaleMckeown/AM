@@ -167,7 +167,7 @@
 		unset($_SESSION['Prototype_ID']);
 	}
 ?>	
-	<title>AM - Attendance Monitor (Prototype 2)</title>
+	<title>AM - Attendance Monitor (Prototype 3)</title>
     <meta name="description" content="Attendance Monitor is an online tool designed to help students track their attendance performance.">
     <meta name="author" content="Dale Mckeown, www.dalemckeown.co.uk">
     <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
@@ -178,7 +178,7 @@
     <header id="cwd_header" role="banner">
         <section class="cwd_container">
             <hgroup class="grid_12" id="cwd_hgroup">
-                <a href="<?php echo $base_url; ?>"><h1>Prototype 2</h1></a>
+                <a href="<?php echo $base_url; ?>"><h1>Prototype 3</h1></a>
                 <a href="<?php echo $am_url; ?>"><h3 class="white">AM Home</h3></a>		
             </hgroup>
         </section>
@@ -210,14 +210,9 @@
 		echo "You must sign in to see the contents of this page....";
 	}
 	else{ 
-		echo "<h2>Prototype Description</h2>
-			
-			<p>The second major prototype, focussing on development of the application, including:
-			<ul>
-				<li>Design & implementation of the <a href=\"http://mongodb.org\">MongoDB</a> database structure.</li>
-				<li>Design & implementation of persona's data sets for use as test data within the application.</li>
-			</ul>
-			</p>";
+		echo "<p>Prototype 3 will analyse intuitive ways to turn raw data into visual objects which may help users to interpret and understand the raw data, 
+while making the process fun. The jquery library <a href=\"http://www.jqplot.com\">jqPlot</a> will be used to represent the student attendance data.
+</p>";
 			
 		echo "<h2>Attendance Data</h2>";
 		if($_SESSION['User_Type'] == "student"){
@@ -351,12 +346,13 @@
 				echo "<h2>Weekly Lecture Data</h2>";
 				
 				$overallLectureCount = 0;
-				$overallDidAttendCount = 0;
-				$overallDidNotAttendCount = 0;
+				$overallAttendedCount = 0;
+				$overallAbsentCount = 0;
+				$weekDataArray = array();
 				foreach($weekArray as $week){
 					$weekLectureCount = 0;
-					$weekDidAttendCount = 0;
-					$weekDidNotAttendCount = 0;
+					$weekAttendedCount = 0;
+					$weekAbsentCount = 0;
 					if($current_time >= $week['week_start']){
 						if($week['teaching_week'] == 1){
 							echo "<h3>Week " . $week['week_id'] . "</h3>";
@@ -439,35 +435,165 @@
 								$weekLectureCount++;
 								if($checkAttendance == 1){
 									echo "Attended!";
-									$weekDidAttendCount++;
+									$weekAttendedCount++;
 								}
 								else{
 									echo "Did not attend!";
-									$weekDidNotAttendCount++;
+									$weekAbsentCount++;
 								}
 								echo "<br>";
 								//***** 			End 			*****/
 							}// End foreach($lectureArray as $lecture){
-							echo "Attended: " . $weekDidAttendCount . "<br> Didn't Attend: " . $weekDidNotAttendCount;
-							$attendancePercentage = ($weekDidAttendCount / $weekLectureCount) * 100;
+							echo "Lecture Count : " . $weekLectureCount . " Attended: " . $weekAttendedCount . "<br> Didn't Attend: " . $weekAbsentCount;
+							$attendancePercentage = (1 / $weekLectureCount) * 100;
+							$absentPercentage = 100 - $attendancePercentage;
 							echo "<br>Attendance Percentage: " . $attendancePercentage . "%<br><br>";
 							
+							echo "Attended: " . $attendancePercentage . " Absent: " .$absentPercentage;
+							
+							
+							
+							//graph stuff
+							echo "<div class=\"graph\" id=\"week_" . $week['week_id'] . "_graph\" style=\"height:200px;width:300px;\"></div>";
+							?>
+							<script language="javascript">
+							plot = jQuery.jqplot('<?php echo "week_" . $week['week_id'] . "_graph"?>',				
+								[[['Attended', <?php echo $weekAttendedCount-1; ?>],['Absent', <?php echo $weekAbsentCount+1; ?>]]],
+								{
+									title: {
+										text: 'Week <?php echo $week['week_id']; ?> Attendance Graph',
+										textColor: '#000000',
+										fontSize: '10pt'
+									},
+									seriesDefaults: {
+										shadow: true,
+										renderer: $.jqplot.PieRenderer,
+										rendererOptions: {
+											highlightMouseOver: 1,
+											sliceMargin: 4,
+											shadowOffset: 2,
+											startAngle: 30,
+											showDataLabels: true
+										}
+									},
+									seriesColors: ["#00CC44", "#EE0000"],
+									legend: {
+										show: true
+									}
+								}
+							);
+							</script>
+                            <?php
+							
+							//add counters
 							$overallLectureCount += $weekLectureCount;
-							$overallDidAttendCount += $weekDidAttendCount;
-							$overallDidNotAttendCount += $weekDidNotAttendCount;
+							$overallAttendedCount += $weekAttendedCount;
+							$overallAbsentCount += $weekAbsentCount;
+							
+							//final graph data array
+							$weekDataArray[] = array(
+							'week_id' => $week['week_id'],
+							'attendance_percentage' => $attendancePercentage,
+							'absent_percentage' => $absentPercentage
+							);
 						}// End if($week['teaching_week'] == 1){
 						else{
 							echo "<h3>Week " . $week['week_id'] . "</h3> This week was not a teaching week. Lucky you!<br>";
+							$weekDataArray[] = array(
+								'week_id' => $week['week_id'],
+								'attendance_percentage' => 0,
+								'absent_percentage' => 0
+							);
 						}
 					}// End if($current_time >= $week['week_start']){
 					else{
 						echo "Week " . $week['week_id'] . " has not yet started!<br>";
+						//final graph data array
+						$weekDataArray[] = array(
+							'week_id' => $week['week_id'],
+							'attendance_percentage' => 0,
+							'absent_percentage' => 0
+						);
 					}
 				}// End foreach($weekArray as $week){
 					
-				echo "Attended: " . $overallDidAttendCount . "<br> Didn't Attend: " . $overallDidNotAttendCount;
-				$attendancePercentage = ($overallDidAttendCount / $overallLectureCount) * 100;
+				echo "Attended: " . $overallAttendedCount . "<br> Didn't Attend: " . $overallAbsentCount;
+				$attendancePercentage = ($overallAttendedCount / $overallLectureCount) * 100;
 				echo "<br>Attendance Percentage: " . $attendancePercentage . "%";
+				
+				//graph stuff
+				echo "<div class=\"graph\" id=\"finalGraph\" style=\"height:400px;width:1000px;\"></div>";
+				$attendedString = '';
+				$absentString = '';
+				$id_string = '';
+				foreach ($weekDataArray as $array){
+					$id_string .= "'week " . $array['week_id'] . "', ";
+					$attendedString .= $array['attendance_percentage'] . ", ";
+					$absentString .=  $array['absent_percentage'] . ", ";
+				}
+				$id_pos = strrpos($id_string, ',');
+				$attended_pos = strrpos($attendedString, ',');
+				$absent_pos = strrpos($absentString, ',');
+				
+				$id_string = substr($id_string, 0, $id_pos);
+				$attendedString = substr($attendedString, 0, $attended_pos);
+				$absentString = substr($absentString, 0, $absent_pos);
+										
+				var_dump($id_string);
+				echo "<br>";
+				var_dump($attendedString);
+				echo "<br>";
+				var_dump($absentString);
+				?>
+				<script language="javascript">
+				var attendedSeries = [<?php echo $attendedString; ?>];
+				var absentSeries = [<?php echo $absentString; ?>];
+				var axisLabels = [<?php echo $id_string; ?>];
+				plot2 = $.jqplot('finalGraph', [attendedSeries, absentSeries], {
+					stackSeries: true,
+					seriesDefaults: {
+						renderer:$.jqplot.BarRenderer,
+						rendererOptions: {
+							barMargin: 5
+						},
+						pointLabels: {
+							show: true
+						}
+					},
+					series:[{label:'Attended'},{label:'Absent'}],
+					axes: {
+						xaxis: {
+							renderer: $.jqplot.CategoryAxisRenderer,
+							label: 'Academic Week',
+							labelOptions:{
+								fontSize: '10pt'
+							},
+							tickRenderer: $.jqplot.CanvasAxisTickRenderer,
+							tickOptions: {
+								angle: -40
+							},
+							ticks: axisLabels
+						},
+						yaxis: {
+							padMin: 0,
+							label: 'Attendance Percentage',
+							labelOptions:{
+								fontSize: '10pt'
+							}
+						}
+					},
+					grid: {
+						gridLineColor: '#FFFFFF'
+					},
+					legend: {
+						show: true,
+						location: 'ne',
+						placement: 'outside'
+					}     
+				});
+                </script>
+                <?php
+				
 			}// End if($result['Success'] == true){
 			else{		
 				echo "<h2>" . $result['Error_Type'] . "</h2>";
@@ -493,7 +619,6 @@
 	<?php $this->load->view('public_user/includes/include_Footer'); ?>
 
 <!-- Put all JavaScript code below this line -->
-<script src="http://c94471.r71.cf3.rackcdn.com/jquery.js" type="text/javascript"></script>
 <!--[if (lt IE 9) & (!IEMobile)]>
 <script src="http://c94471.r71.cf3.rackcdn.com/selectivizr-1.0.1.js"></script>
 <![endif]-->
