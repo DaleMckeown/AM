@@ -1,167 +1,39 @@
 <?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 	session_start();
 	$this->load->view('public_user/includes/include_Header', $this->data);
-	//Set up some functions - should be put in seperate file in future versions
-	function randomID($length){
-		$random= "";
-		srand(microtime()*1000000);
-		$data = "AbcDE123IJKLMN67QRSTUVWXYZaBCdefghijklmn123opq45rs67tuv89wxyz0FGH45OP89";
+	$this->load->view('public_user/includes/include_Functions', $this->data);
 	
-		for($i = 0; $i < $length; $i++){
-			$random .= substr($data, (rand()  % (strlen($data))), 1);
-		}
-		return $random;
+	if(!empty($_GET['dataType'])){
+		$dataType = strtolower(strip_tags(substr($_GET['dataType'],0,20)));
 	}
-	function getPrototypeID(){
-		$thisDir = getcwd();
-		$lastInstance = strrpos($thisDir, "/") + 1;
-		// Slice the directory name from the lastInstance and a length.
-		$Prototype_ID = substr($thisDir, $lastInstance, 2);
-		return $Prototype_ID;
+	else{
+		$dataType = '';
 	}
+
+	//little function to allow others to see data.
+	if(!empty($_GET['override'])){
+		$collection = $mongo_db->am_users;
+		$searchQuery = "function() {
+			return this.User_ID == '08110296';
+		}";
+		$cursor = $collection->find(array('$where' => $searchQuery));
+		$cursorArray = iterator_to_array($cursor, false); // 'use_keys' must be false
+		$person = $cursorArray[0]; // Get the first instance
+				
+		$Person_ID = $person['User_ID'];
+		$Person_Name = "Dale Mckeown";
+		$Person_Access_Token = $person['Access_Token'];
+		$Person_User_Type = "student";
+	}
+	if(!empty($_SESSION['User_ID'])){
+		$Person_ID = $_SESSION['User_ID'];
+		$Person_Name = $_SESSION['User_Name'];
+		$Person_Access_Token = $_SESSION['Access_Token'];
+		$Person_User_Type = $_SESSION['User_Type'];
+	}
+		
+	//get the prototype id
 	$prototype_id = getPrototypeID();
-	
-	function reportError($db, $errorData){
-		// Log the error and error message, along with IP address, time, page etc. 
-		$collection = $db->am_error_monitor; // Change to relevant collection
-		$insertQuery = array(
-			'User_ID' => $_SESSION['User_ID'],
-			'User_IP' => getIP(),
-			'Script' => $_SERVER['PHP_SELF'],
-			'Error_Timestamp' => time(),
-			'Error_Type' => $errorData['Error_Type'],
-			'Error_Code' => $errorData['Error_Code'],
-			'Error_Message' => $errorData['Error_Message']
-		);
-		$collection->insert($insertQuery, array("safe" => true));
-	}
-	function resetSession(){
-		$Application_State = $_SESSION['Application_State'];
-		$_SESSION = array(); // Redefine session array, clearing it.
-		session_destroy(); // Destroy old session.
-		session_start(); // Start new session.
-		$_SESSION['Application_State'] = $Application_State;
-	}
-	function getIP(){ 
-		if(isset($_SERVER['HTTP_X_FORWARDED_FOR'])){
-			$TheIp=$_SERVER['HTTP_X_FORWARDED_FOR'];
-		}
-		else{
-			$TheIp=$_SERVER['REMOTE_ADDR'];
-		}
-		return trim($TheIp);
-	}
-	function getNucleusData($db, $data){
-		$ssOAuth = "https://sso.lincoln.ac.uk" . $data['endPoint'];
-		$nucleus = "https://nucleus.lincoln.ac.uk" . $data['endPoint'];
-		$nucleusProxy = "https://nucleus-proxy.online.lincoln.ac.uk" . $data['endPoint'];
-		$postdata = http_build_query($data['params']);
-		
-		if($data['requestType'] == "OAuth"){
-			$opts = array('http' =>
-				array(
-					'method'  => 'POST',
-					'header'  => 'Content-type: application/x-www-form-urlencoded\r\nContent-Length: ' . strlen($postdata),
-					'content' => $postdata
-				)
-			);
-			$context = stream_context_create($opts);				
-			$result = file_get_contents($ssOAuth, false, $context);
-			$return = json_decode($result);
-			return $return;
-		}
-		else{
-			//$_GET type
-			$opts = array('http' =>
-				array(
-					'method' => 'GET',
-					'header' => 'Content-Type: text/html; charset=utf-8'
-				)
-			);
-			$context = stream_context_create($opts);			
-			$result = file_get_contents($nucleusProxy . $postdata, false, $context);
-			$json = json_decode($result, true); // Parse the returned data
-			
-			if(empty($json)){
-				$return = array(
-					'Success'  => false,
-					'Error_Type'  => "Nucleus Request Error",
-					'Error_Code'  => "404",
-					'Error_Message' => "Nucleus API is unavailable",
-					'Error_Image' => "http://httpcats.herokuapp.com/404",
-				);
-			}
-			else if($json['error'] == true){
-				$return = array(
-					'Success'  => false,
-					'Error_Type'  => "Nucleus Request Error",
-					'Error_Code'  => $json['status_code'],
-					'Error_Message' => $json['message'],
-					'Error_Image' => $json['status_cat'],
-					'Data' => $json
-				);
-			}
-			else{
-				$return = array(
-					'Success'  => true,
-					'Data' => $json
-				);
-			}
-			if($return['Success'] == false){
-				// Log the error and error message, along with IP address, Application details etc.
-				$errorData = array(
-					'Error_Type' => $return['Error_Type'],
-					'Error_Code' => $return['Error_Code'],
-					'Error_Message' => $return['Error_Message']
-				);
-				reportError($db, $errorData);
-				resetSession();
-			}
-		return $return;
-		}
-	}
-	function getAcademicDates(){
-		//set the teaching weeks
-		$teaching_weeks = array(
-			'1','2','3','4','5','6','7','8','9','10','11','16','17',
-			'18','19','20','21','22','23','24','25','26','31','32'
-		);
-		
-		//calculate the start of the academic year
-		$this_month = date('m');
-		$this_year = date('y');
-		
-		if($this_month >= 9){
-			$academic_year = date("Y");
-			$year_code = $this_year . ($this_year+1);
-		}
-		else{
-			$academic_year = ($this_year-1);
-			$year_code = ($this_year-1) . $this_year;
-		}
-		
-		//get the day for september 1st of the academic year
-		$september = mktime(0, 0, 0, date(9), 1, $academic_year);
-		//add two weeks
-		$twoweeks = strtotime('+2 weeks' ,$september);
-		$adddays = 0;
-		$dayofweek = date('N', $twoweeks);
-		//If the day is not a monday, work out how many days to add to get to monday (back to one)
-		if($dayofweek != 1){
-			$adddays = 8 - $dayofweek;
-		}
-		//generate a unix timestamp for the start of that day.
-		$first_week = strtotime('+' . $adddays . ' days' ,$twoweeks);
-		//add some weeks to populate the year 
-		$last_week = strtotime('+32 weeks' ,$first_week);
-		return array(
-			'year_code' => $year_code,
-			'academic_year' => $academic_year,
-			'first_week_start' => $first_week,
-			'last_week_start' => $last_week,
-			'teaching_weeks' => $teaching_weeks 
-		);
-	}
 	
 	if(!empty($_SESSION['Prototype_ID'])){
 		unset($_SESSION['Prototype_ID']);
@@ -188,38 +60,39 @@
         <ul id="cwd_navigation" class="grid_12">  
             <li class="current"><a href="<?php echo $base_url; ?>">Home</a></li>
             <?php 
-			if(empty($_SESSION['Access_Token'])){
+			if(empty($Person_Access_Token)){
 				
 				$_SESSION['Application_State'] = randomID(10);
-				
-				echo "<li><a href=\"https://sso.lincoln.ac.uk/oauth?response_type=code&client_id=" . $application_id . "&redirect_uri=http://www.am.dalemckeown.co.uk/signIn.php&scope=" . $application_scope . "&state=" . $_SESSION['Application_State'] . "/" . $prototype_id . "\">Sign In</a></li>";
+				$sign_in = "<a href=\"https://sso.lincoln.ac.uk/oauth?response_type=code&client_id=" . $application_id . "&redirect_uri=http://www.am.dalemckeown.co.uk/signIn.php&scope=" . $application_scope . "&state=" . $_SESSION['Application_State'] . "/" . $prototype_id . "\">Sign In</a>";
+				echo "<li>$sign_in</li>";
 			}
 			else{
-				echo "<li><a href=\"#\">Welcome, " . $_SESSION['User_Name'] . "</a></li>";
+				echo "<li><a href=\"#\">Welcome, " . $Person_Name . "</a></li>";
 				echo "<li><a href=\"https://sso.lincoln.ac.uk/sign_out?redirect_uri=http://www.am.dalemckeown.co.uk/?signOut=true\">Sign Out</a></li>";
 			}
 			?>
         </ul>  
     </nav>
     
-    <section class="cwd_container" id="cwd_content" role="main">
-    <div class="grid_12">	
-    <h1>Attendance Monitor</h1>
+    <section class="cwd_container" id="cwd_content" role="main">	
+    <div class="grid_12"><h1>Attendance Monitor</h1></div>
     <?php
-	if(empty($_SESSION['Access_Token'])){
-		echo "You must sign in to see the contents of this page....";
+	if(empty($Person_Access_Token)){
+		echo "<div class=\"grid_12\"><div class=\"notice\">You must $sign_in to see the contents of this page....</div></div>";
 	}
-	else{ 
-		echo "<p>Prototype 3 will analyse intuitive ways to turn raw data into visual objects which may help users to interpret and understand the raw data, 
+	else{
+		echo "<div class=\"grid_12\">" .
+		"<div class=\"notice\">" .
+		"<p>Prototype 3 will analyse intuitive ways to turn raw data into visual objects which may help users to interpret and understand the raw data, 
 while making the process fun. The jquery library <a href=\"http://www.jqplot.com\">jqPlot</a> will be used to represent the student attendance data.
-</p>";
-			
-		echo "<h2>Attendance Data</h2>";
-		if($_SESSION['User_Type'] == "student"){
-			echo "Your personal student attendance data...";
-			
+</p>" .
+		"</div>" . 
+		"</div>";
+		
+		if($Person_User_Type == "student"){
+			echo "<div class=\"grid_12\"><h2>General Information</h2></div>";
 			// Get data from Nucleus
-			$params = array('access_token' => $_SESSION['Access_Token']);
+			$params = array('access_token' => $Person_Access_Token);
 			$data = array(
 				'requestType' => 'Nucleus_Data',
 				'endPoint' => '/v1/people/user?',
@@ -234,17 +107,31 @@ while making the process fun. The jquery library <a href=\"http://www.jqplot.com
 				$person_course_level = substr($level, $needle);
 				$person_course_id = $json['results'][0]['course']['id'];
 				$person_course_title = $json['results'][0]['course']['title'];
-				
 				$person_units = $json['results'][0]['units']; //further array of arrays
-				echo "<br>Units: <br>";
+				echo "<div class=\"grid_4 dataBox\">";
+				echo "<h3>Course Information</h3>";
+				echo "<p>Course ID: " . $person_course_id . "<br>" .
+				"Course Title: " . $person_course_title . "<br>" .
+				"Course level: " . $person_course_level . "</p>";
+				echo "</div>";
+				
+				echo "<div class=\"grid_8 last dataBox\">";
+				echo "<h3>Module Information</h3>";
 				asort($person_units);
+				echo "<p>";
+				$moduleArray = array(); //array of modules, used to retrieve lecture data
 				foreach ($person_units as $unit){
-					echo "ID: " . $unit['id'] . " Title: " . $unit['title'];
-					echo "<br>";
+					echo "<b>" . $unit['id'] . "</b> - " . $unit['title'] . "<br>";
+					$moduleArray[] = array(
+					'Module_ID' => $unit['id'],
+					'Module_Title' => $unit['title']
+					);
 				}
+				echo "</p>";
+				echo "</div>";
 				// Get event data from nucleus
 				$params = array(
-					'access_token' => $_SESSION['Access_Token']
+					'access_token' => $Person_Access_Token
 				);
 				$data = array(
 					'requestType' => 'Nucleus_Data',
@@ -254,7 +141,26 @@ while making the process fun. The jquery library <a href=\"http://www.jqplot.com
 				$result2 = getNucleusData($mongo_db, $data);
 				if($result2['Success'] == true){ // If getNucleusData does not return an error
 					$json = $result2['Data'];
-					//var_dump($json);
+					$event_results = $json['results'];
+							
+					//generate all the session and attendance data....
+					$result = generateModuleAndAttendance($mongo_db, $Person_ID, $person_units, $event_results);
+					
+					$weekArray = $result['weekArray'];
+					$month_dates = $result['month_dates'];
+					
+					if($dataType == "bymodule"){
+						//Module analysis
+						attendanceByModule($mongo_db, $Person_ID, $moduleArray);
+					}
+					else if($dataType == "bymonth"){
+						//Month by month analysis
+						attendanceByMonth($mongo_db, $Person_ID, $moduleArray, $month_dates);
+					}
+					else{
+						//Week by week analysys
+						attendanceByWeek($mongo_db, $Person_ID, $moduleArray, $weekArray);
+					}			
 				}
 				else{		
 					echo "<h2>" . $result2['Error_Type'] . "</h2>";
@@ -262,338 +168,6 @@ while making the process fun. The jquery library <a href=\"http://www.jqplot.com
 					echo "<h4>Error Message: " . $result2['Error_Message'] . "</h4>";
 					echo "<img src =\"" . $result2['Error_Image'] . ".jpg\">";
 				}
-				
-				//generate some data to implement nucleus result (looseley)
-				$timeStart = array();
-				$timeEnd = array();
-				
-				//software development
-				$timeStart[] = 1327489200;
-				$timeEnd[] = 1327496400;
-				//professional practice
-				$timeStart[] = 0;
-				$timeEnd[] = 0;			
-				//project
-				$timeStart[] = 0;
-				$timeEnd[] = 0;
-				//project preparation
-				$timeStart[] = 0;
-				$timeEnd[] = 0;
-				//computer vision and robotics
-				$timeStart[] = 1327413600;
-				$timeEnd[] = 1327417200;
-				//create new array with all data
-				$lectureArray = array();
-				$count = 0;
-				foreach($person_units  as $unit){
-					if($timeStart[$count] != 0){
-						$day = date('N', $timeStart[$count]);
-						$start_hour = date('H', $timeStart[$count]);
-						$start_minutes = date('i', $timeStart[$count]);
-						$start_time = $start_hour . ":" . $start_minutes;
-						$end_hour = date('H', $timeEnd[$count]);
-						$end_minutes = date('i', $timeEnd[$count]);
-						$end_time = $end_hour . ":" . $end_minutes;
-						$lectureArray[] = array(
-							'id' => $unit['id'],
-							'title' => $unit['title'],
-							'day' => $day,
-							'start_time' => $start_time,
-							'end_time' => $end_time
-						);
-					}
-					$count++;
-				}
-				
-				//generate year code, academic year start, first and last week timestamps.
-				$dateDetails = getAcademicDates();
-				
-				$first_week_start = $dateDetails['first_week_start'];
-				$last_week_start = $dateDetails['last_week_start'];
-				$teaching_weeks = $dateDetails['teaching_weeks'];
-				
-				$iterate_week = $first_week_start;
-				$week_seconds = ((60 * 60) * 24) * 7; //full week
-				$week_end_seconds = (((60 * 60) * 24) * 7) - 1; //7 full week - 1 second
-				$week_id = 0;
-				
-				$weekArray = array();
-				while($iterate_week <= $last_week_start){
-					
-					//perform some vital calculations.
-					//calculate the end of the week unix timestamp
-					$week_end = $iterate_week + $week_end_seconds;
-					//if the current week is in the teaching weeks array
-					if(in_array($week_id, $teaching_weeks)){
-						$teaching_week = 1;
-					}
-					else{
-						$teaching_week = 0;
-					}
-					//add a new array to the week array using relevnt data
-					$weekArray[] = array(
-						'week_id' => $week_id,
-						'teaching_week' => $teaching_week,
-						'week_start' => $iterate_week,
-						'week_end' => $week_end
-					);
-					//increment conditions
-					$week_id++;
-					$iterate_week = $iterate_week + $week_seconds;
-				}
-				$collection = $mongo_db->am_user_events; // Change to MongoDB relevant collection
-				$current_time = time();
-				echo "<h2>Weekly Lecture Data</h2>";
-				
-				$overallLectureCount = 0;
-				$overallAttendedCount = 0;
-				$overallAbsentCount = 0;
-				$weekDataArray = array();
-				foreach($weekArray as $week){
-					$weekLectureCount = 0;
-					$weekAttendedCount = 0;
-					$weekAbsentCount = 0;
-					if($current_time >= $week['week_start']){
-						if($week['teaching_week'] == 1){
-							echo "<h3>Week " . $week['week_id'] . "</h3>";
-							foreach($lectureArray as $lecture){
-								//work out timestamps for each lecture (essential for DB query)
-								$lecture_timestamp = $week['week_start'];
-								for($dayCount = 1; $dayCount < $lecture['day']; $dayCount++){
-									$lecture_timestamp = strtotime('+1 day' ,$lecture_timestamp);
-								}
-								//calculate timestamp for lecture start
-								$lecture_start_needle = strpos($lecture['start_time'], ':');
-								$lecture_start_hour = substr($lecture['start_time'],0,$lecture_start_needle);
-								$lecture_start_minute = substr($lecture['start_time'], $lecture_start_needle+1,2);
-								$lecture_start = strtotime("+" . $lecture_start_hour . " hours" , $lecture_timestamp);
-								$lecture_start = strtotime("+" . $lecture_start_minute . " minutes" , $lecture_start);
-								//calculate timestamp for lecture end
-								$lecture_end_needle = strpos($lecture['end_time'], ':');
-								$lecture_end_hour = substr($lecture['end_time'],0,$lecture_end_needle);
-								$lecture_end_minute = substr($lecture['end_time'], $lecture_end_needle+1,2);
-								$lecture_end = strtotime("+" . $lecture_end_hour . " hours" , $lecture_timestamp);
-								$lecture_end = strtotime("+" . $lecture_end_minute . " minutes" , $lecture_end);
-								
-								//Generate whether the user attended this session
-								$attended_bool = 1;
-								$attended = array($_SESSION['User_ID'] => $attended_bool);
-
-								//***** Search for module in mongo collection, insert data as required *****/
-								
-								$searchQuery = "function() {
-									return this.Module_ID == '" . $lecture['id'] . "' && this.Start_Time ==  '" . $lecture_start . "';
-								}";
-								$cursor = $collection->find(array('$where' => $searchQuery));
-								$cursorArray = iterator_to_array($cursor, false); // 'use_keys' must be false.
-								$result = $cursorArray; // Get the first instance
-								
-								//if no entry is found, make one and insert data
-								if(empty($result)){					
-									$insertQuery = array(
-										'Module_ID' => $lecture['id'],
-										'Module_Title' => $lecture['title'],
-										'Start_Time' => $lecture_start,
-										'End_Time' => $lecture_end,
-										'Attended' => $attended						
-									);
-									//insert if not found
-									$collection->insert($insertQuery, array("safe" => true));
-								}								
-								else{ //else retrieve array, see if user is in the array, and if they are not, insert them.
-									$cursor = $collection->find(array('$where' => $searchQuery));
-									$cursorArray = iterator_to_array($cursor, false); // 'use_keys' must be false.
-									$result = $cursorArray[0]; // Get the first instance
-									//if the user_id exists as an aray key
-									if(!array_key_exists($_SESSION['User_ID'], $result['Attended'])){
-										//define update query
-										$updateQuery = array(
-											"Module_ID" => $lecture['id'],
-											"Start_Time" => $lecture_start
-										);
-										$insert = $result['Attended'] + $attended;
-										$collection->update($updateQuery, array('$set' => array('Attended' => $insert)), array("safe" => true));
-										var_dump($insert);
-									}
-									else{
-										//echo "<br>Data already exists in database<br>";
-									}
-									//else array key already exists
-								}
-								//***** 			End 			*****/
-								
-								
-								//***** Start pulling data from database and analyse. *****/
-								
-								
-								//***** Pull data from database, increment counters, output result. *****/
-								$cursor = $collection->find(array('Module_ID' => $lecture['id'], 'Start_Time' => $lecture_start, 'Attended.' .$_SESSION["User_ID"] => array('$exists' => true)));
-								$cursorArray = iterator_to_array($cursor, false); // 'use_keys' must be false.
-								$result = $cursorArray[0]; // Get the first instance
-								$checkAttendance = $result['Attended'][$_SESSION['User_ID']];
-								echo $lecture['title'] . " (" . date('D ga - ', $lecture_start) . date('ga', $lecture_end) . "): ";
-								$weekLectureCount++;
-								if($checkAttendance == 1){
-									echo "Attended!";
-									$weekAttendedCount++;
-								}
-								else{
-									echo "Did not attend!";
-									$weekAbsentCount++;
-								}
-								echo "<br>";
-								//***** 			End 			*****/
-							}// End foreach($lectureArray as $lecture){
-							echo "Lecture Count : " . $weekLectureCount . " Attended: " . $weekAttendedCount . "<br> Didn't Attend: " . $weekAbsentCount;
-							$attendancePercentage = (1 / $weekLectureCount) * 100;
-							$absentPercentage = 100 - $attendancePercentage;
-							echo "<br>Attendance Percentage: " . $attendancePercentage . "%<br><br>";
-							
-							echo "Attended: " . $attendancePercentage . " Absent: " .$absentPercentage;
-							
-							
-							
-							//graph stuff
-							echo "<div class=\"graph\" id=\"week_" . $week['week_id'] . "_graph\" style=\"height:200px;width:300px;\"></div>";
-							?>
-							<script language="javascript">
-							plot = jQuery.jqplot('<?php echo "week_" . $week['week_id'] . "_graph"?>',				
-								[[['Attended', <?php echo $weekAttendedCount-1; ?>],['Absent', <?php echo $weekAbsentCount+1; ?>]]],
-								{
-									title: {
-										text: 'Week <?php echo $week['week_id']; ?> Attendance Graph',
-										textColor: '#000000',
-										fontSize: '10pt'
-									},
-									seriesDefaults: {
-										shadow: true,
-										renderer: $.jqplot.PieRenderer,
-										rendererOptions: {
-											highlightMouseOver: 1,
-											sliceMargin: 4,
-											shadowOffset: 2,
-											startAngle: 30,
-											showDataLabels: true
-										}
-									},
-									seriesColors: ["#00CC44", "#EE0000"],
-									legend: {
-										show: true
-									}
-								}
-							);
-							</script>
-                            <?php
-							
-							//add counters
-							$overallLectureCount += $weekLectureCount;
-							$overallAttendedCount += $weekAttendedCount;
-							$overallAbsentCount += $weekAbsentCount;
-							
-							//final graph data array
-							$weekDataArray[] = array(
-							'week_id' => $week['week_id'],
-							'attendance_percentage' => $attendancePercentage,
-							'absent_percentage' => $absentPercentage
-							);
-						}// End if($week['teaching_week'] == 1){
-						else{
-							echo "<h3>Week " . $week['week_id'] . "</h3> This week was not a teaching week. Lucky you!<br>";
-							$weekDataArray[] = array(
-								'week_id' => $week['week_id'],
-								'attendance_percentage' => 0,
-								'absent_percentage' => 0
-							);
-						}
-					}// End if($current_time >= $week['week_start']){
-					else{
-						echo "Week " . $week['week_id'] . " has not yet started!<br>";
-						//final graph data array
-						$weekDataArray[] = array(
-							'week_id' => $week['week_id'],
-							'attendance_percentage' => 0,
-							'absent_percentage' => 0
-						);
-					}
-				}// End foreach($weekArray as $week){
-					
-				echo "Attended: " . $overallAttendedCount . "<br> Didn't Attend: " . $overallAbsentCount;
-				$attendancePercentage = ($overallAttendedCount / $overallLectureCount) * 100;
-				echo "<br>Attendance Percentage: " . $attendancePercentage . "%";
-				
-				//graph stuff
-				echo "<div class=\"graph\" id=\"finalGraph\" style=\"height:400px;width:1000px;\"></div>";
-				$attendedString = '';
-				$absentString = '';
-				$id_string = '';
-				foreach ($weekDataArray as $array){
-					$id_string .= "'week " . $array['week_id'] . "', ";
-					$attendedString .= $array['attendance_percentage'] . ", ";
-					$absentString .=  $array['absent_percentage'] . ", ";
-				}
-				$id_pos = strrpos($id_string, ',');
-				$attended_pos = strrpos($attendedString, ',');
-				$absent_pos = strrpos($absentString, ',');
-				
-				$id_string = substr($id_string, 0, $id_pos);
-				$attendedString = substr($attendedString, 0, $attended_pos);
-				$absentString = substr($absentString, 0, $absent_pos);
-										
-				var_dump($id_string);
-				echo "<br>";
-				var_dump($attendedString);
-				echo "<br>";
-				var_dump($absentString);
-				?>
-				<script language="javascript">
-				var attendedSeries = [<?php echo $attendedString; ?>];
-				var absentSeries = [<?php echo $absentString; ?>];
-				var axisLabels = [<?php echo $id_string; ?>];
-				plot2 = $.jqplot('finalGraph', [attendedSeries, absentSeries], {
-					stackSeries: true,
-					seriesDefaults: {
-						renderer:$.jqplot.BarRenderer,
-						rendererOptions: {
-							barMargin: 5
-						},
-						pointLabels: {
-							show: true
-						}
-					},
-					series:[{label:'Attended'},{label:'Absent'}],
-					axes: {
-						xaxis: {
-							renderer: $.jqplot.CategoryAxisRenderer,
-							label: 'Academic Week',
-							labelOptions:{
-								fontSize: '10pt'
-							},
-							tickRenderer: $.jqplot.CanvasAxisTickRenderer,
-							tickOptions: {
-								angle: -40
-							},
-							ticks: axisLabels
-						},
-						yaxis: {
-							padMin: 0,
-							label: 'Attendance Percentage',
-							labelOptions:{
-								fontSize: '10pt'
-							}
-						}
-					},
-					grid: {
-						gridLineColor: '#FFFFFF'
-					},
-					legend: {
-						show: true,
-						location: 'ne',
-						placement: 'outside'
-					}     
-				});
-                </script>
-                <?php
-				
 			}// End if($result['Success'] == true){
 			else{		
 				echo "<h2>" . $result['Error_Type'] . "</h2>";
@@ -601,9 +175,9 @@ while making the process fun. The jquery library <a href=\"http://www.jqplot.com
 				echo "<h4>Error Message: " . $result['Error_Message'] . "</h4>";
 				echo "<img src =\"" . $result['Error_Image'] . ".jpg\">";
 			}
-		}// End if($_SESSION['User_Type'] == "student"){
+		}// End if($Person_User_Type == "student"){
 			
-		/*else if($_SESSION['User_Type'] == "staff"){
+		/*else if($Person_User_Type == "staff"){
 			echo $person_title = $json['results'][0]['title'];
 			echo $person_department = $json['results'][0]['department'];
 			echo $person_job = $json['results'][0]['job'];
@@ -613,7 +187,6 @@ while making the process fun. The jquery library <a href=\"http://www.jqplot.com
 			echo "Other Set";
 		}
 	} ?>
-    </div>
     </section>
     
 	<?php $this->load->view('public_user/includes/include_Footer'); ?>

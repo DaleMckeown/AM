@@ -1,5 +1,4 @@
 <?php if ( ! defined('BASEPATH')) exit('No direct script access allowed'); ?>
-
 <!doctype html>
 <!--[if IEMobile 7 ]><html class="no-js iem7" lang="en"><![endif]-->
 <!--[if lt IE 7 ]><html class="no-js ie ie6" lang="en"><![endif]-->
@@ -21,15 +20,13 @@
     <link rel="stylesheet" href="<?php echo $base_url . $css; ?>override_Styles.css">
     
     <!-- jqPlot includes -->
+    <!--[if lt IE 9]><script language="javascript" type="text/javascript" src="<?php echo $base_url . $javascript; ?>excanvas.min.js"></script> <![endif]-->
     <script language="javascript" type="text/javascript" src="<?php echo $base_url . $javascript; ?>jquery.jqplot.min.js"></script>
     <script language="javascript" type="text/javascript" src="<?php echo $base_url . $javascript; ?>jqplot.barRenderer.min.js"></script>
     <script language="javascript" type="text/javascript" src="<?php echo $base_url . $javascript; ?>jqplot.canvasAxisTickRenderer.min.js"></script>
     <script language="javascript" type="text/javascript" src="<?php echo $base_url . $javascript; ?>jqplot.canvasTextRenderer.min.js"></script>
     <script language="javascript" type="text/javascript" src="<?php echo $base_url . $javascript; ?>jqplot.categoryAxisRenderer.min.js"></script>
-    <script language="javascript" type="text/javascript" src="<?php echo $base_url . $javascript; ?>jqplot.pieRenderer.min.js"></script>
-    
-    
-	
+    <script language="javascript" type="text/javascript" src="<?php echo $base_url . $javascript; ?>jqplot.pieRenderer.min.js"></script>  
     <link rel="stylesheet" href="<?php echo $base_url . $css; ?>jquery.jqplot.min.css">
 	
     <script language="javascript">
