@@ -223,26 +223,30 @@ function generateModuleAndAttendance($mongo_db, $Person_ID, $person_units, $even
 	foreach($event_results as $event_result){
 		//var_dump($event_result);
 		//echo "<br>";
-		$timeStart = $event_result['event_unixstart'];
-		$timeEnd = $event_result['event_unixend'];
-		$day = date('N', $timeStart);
-		$start_hour = date('H', $timeStart);
-		$start_minutes = date('i', $timeStart);
-		$start_time = $start_hour . ":" . $start_minutes;
-		$end_hour = date('H', $timeEnd);
-		$end_minutes = date('i', $timeEnd);
-		$end_time = $end_hour . ":" . $end_minutes;
-		
-		$searchArray = array(
-			'id' => $event_result['cmis_course']['id'],
-			'title' => $event_result['event_title'],
-			'day' => $day,
-			'start_time' => $start_time,
-			'end_time' => $end_time
-		);
-		if(!in_array($searchArray, $sessionArray)){
-			$sessionArray[] = $searchArray;
-		}	
+		if($event_result['event_type'] == "academic_timetable"){
+			$timeStart = $event_result['event_unixstart'];
+			$timeEnd = $event_result['event_unixend'];
+			$day = date('N', $timeStart);
+			$start_hour = date('H', $timeStart);
+			$start_minutes = date('i', $timeStart);
+			$start_time = $start_hour . ":" . $start_minutes;
+			$end_hour = date('H', $timeEnd);
+			$end_minutes = date('i', $timeEnd);
+			$end_time = $end_hour . ":" . $end_minutes;
+			
+			$searchArray = array(
+				'id' => $event_result['cmis_course']['id'],
+				'title' => $event_result['event_title'],
+				'location' => key($event_result['event_location_raw']),
+				'event_type' => $event_result['cmis_event_type'],
+				'day' => $day,
+				'start_time' => $start_time,
+				'end_time' => $end_time
+			);
+			if(!in_array($searchArray, $sessionArray)){
+				$sessionArray[] = $searchArray;
+			}
+		}
 	}
 	
 	//generate attendance profile
@@ -339,9 +343,11 @@ function generateModuleAndAttendance($mongo_db, $Person_ID, $person_units, $even
 							$insertQuery = array(
 								'Module_ID' => $session['id'],
 								'Module_Title' => $session['title'],
+								'Event_Location' => $session['location'],
+								'Event_Type' => $session['event_type'],
 								'Start_Time' => $session_start,
 								'End_Time' => $session_end,
-								'Attended' => $attendance						
+								'Attended' => $attendance
 							);
 							//insert if not found
 							$collection->insert($insertQuery, array("safe" => true));
@@ -381,7 +387,13 @@ function generateModuleAndAttendance($mongo_db, $Person_ID, $person_units, $even
 }
 //Function to compare vars in multidimensional arrays
 function compareSort($a, $b) {
-	return $a['Start_Time']>$b['End_Time'];
+	return $a['Start_Time']>$b['Start_Time'];
+}
+function customDateShort($start, $end){
+	return date('d/n', $start) ." ". date('g', $start) . "-" . date('g', $end);
+}
+function customDateLong($start, $end, $type){
+	return date('D jS', $start) ." ". date('ga', $start) . " - " . date('ga', $end);
 }
 function attendanceByWeek($mongo_db, $Person_ID, $moduleArray, $weekArray){
 	/****** Start Week by Week Analysis ******/
@@ -412,8 +424,10 @@ function attendanceByWeek($mongo_db, $Person_ID, $moduleArray, $weekArray){
 			}
 			
 			if($week['teaching_week'] == 1){ //If week is a teaching week
-				echo "<h3>Week " . $week['week_id'] . "</h3>";
-				echo "<p>";
+				$startDay = date('j/n/y', $week['week_start']);
+				$endDay = date('j/n/y', $week['week_end']);
+				echo "<h3 title=\"" . $startDay  . " - " . $endDay . "\">Week " . $week['week_id'] . "</h3>";
+				
 				
 				$sessionArray = array();
 				//search for all lecture data for this week
@@ -430,24 +444,22 @@ function attendanceByWeek($mongo_db, $Person_ID, $moduleArray, $weekArray){
 				}//End foreach($moduleArray as $module){
 
 				//sort the array by attendance day
-				uasort($sessionArray, 'compareSort');
-
+				usort($sessionArray, 'compareSort');
+				
 				//output each session and increment counters
 				foreach ($sessionArray as $session){	
-					echo  $session['Module_ID'] . " " . date('l ga', $session['Start_Time']) . " - " . date('ga', $session['End_Time']) . ": ";
 					if($session['Attended'][$Person_ID] == 1){
-						echo "Att";
+						echo "<div class=\"att attGreen\">" . $session['Module_ID'] . " " . customDateLong($session['Start_Time'], $session['End_Time'], $session['Event_Type']) . "</div>";
 						$weekAttendedCount++;
 					}
 					else{
-						echo "Abs";
+						echo "<div class=\"att attRed\">" . $session['Module_ID'] . " " . customDateLong($session['Start_Time'], $session['End_Time'], $session['Event_Type']) . "</div>";
 						$weekAbsentCount++;
 					}
 					echo "</br>";
 					$weekLectureCount++;
 				}	
-				echo "Sessions : " . $weekLectureCount . " Attended: " . $weekAttendedCount . " Absent: " . $weekAbsentCount;	
-				echo "</p>";
+				echo "<p>" . $weekLectureCount . " sessions (<font class=\"Green\">" . $weekAttendedCount . "</font> - <font class=\"Red\">" . $weekAbsentCount . "</font>)</p>";	
 				
 				//graph stuff
 				echo "<div class=\"dataGraph\" id=\"week_" . $week['week_id'] . "_graph\"></div>";
@@ -465,7 +477,7 @@ function attendanceByWeek($mongo_db, $Person_ID, $moduleArray, $weekArray){
 							rendererOptions: {
 								highlightMouseOver: 1,
 								sliceMargin: 3,
-								padding: 5,
+								padding: 10,
 								shadowOffset: 2,
 								startAngle: 30,
 								showDataLabels: true
@@ -501,7 +513,10 @@ function attendanceByWeek($mongo_db, $Person_ID, $moduleArray, $weekArray){
 				);
 			}// End if($week['teaching_week'] == 1){
 			else{
-				echo "<h3>Week " . $week['week_id'] . "</h3> This week was not a teaching week. Lucky you!<br>";
+				$startDay = date('j/n/y', $week['week_start']);
+				$endDay = date('j/n/y', $week['week_end']);
+				echo "<h3 title=\"" . $startDay  . " - " . $endDay . "\">Week " . $week['week_id'] . "</h3>";
+				echo " This week was not a teaching week. Lucky you!<br>";
 
 				$weekDataArray[] = array(
 					'week_id' => $week['week_id'],
@@ -526,9 +541,8 @@ function attendanceByWeek($mongo_db, $Person_ID, $moduleArray, $weekArray){
 	
 	echo "<div class=\"grid_12  dataBox\">";
 	echo "<h2>Overall Data</h2>";
-	echo "<p>Total Sessions: " . $overallLectureCount . " (" . $overallAttendedCount . " attended, " . $overallAbsentCount . " absent)";
-	$attendancePercentage = ($overallAttendedCount / $overallLectureCount) * 100;
-	echo "<br>Overall Attendance Percentage: " . $attendancePercentage . "%</p>";
+	$attendancePercentage = round(($overallAttendedCount / $overallLectureCount) * 100, 2);
+	echo "<p>" . $overallLectureCount . " sessions (<font class=\"Green\">" . $overallAttendedCount . "</font> - <font class=\"Red\">" . $overallAbsentCount . "</font>) " . $attendancePercentage . "%</p>";
 	
 	//graph stuff
 	echo "<div class=\"largePie\" id=\"finalPieChart\"></div>";
@@ -680,7 +694,7 @@ function attendanceByMonth($mongo_db, $Person_ID, $moduleArray, $monthArray){
 			
 			
 			echo "<h3>" . $month['Month'] . "</h3>";
-			echo "<p>";
+
 			
 			$sessionArray = array();
 			//search for all lecture data for this month
@@ -697,24 +711,22 @@ function attendanceByMonth($mongo_db, $Person_ID, $moduleArray, $monthArray){
 			}//End foreach($moduleArray as $module){
 
 			//sort the array by attendance day
-			uasort($sessionArray, 'compareSort');
+			usort($sessionArray, 'compareSort');
 
 			//output each session and increment counters
 			foreach ($sessionArray as $session){	
-				echo  $session['Module_ID'] . " " . date('l ga', $session['Start_Time']) . " - " . date('ga', $session['End_Time']) . ": ";
 				if($session['Attended'][$Person_ID] == 1){
-					echo "Att";
+					echo "<div class=\"att attGreen\">" . $session['Module_ID'] . " " . customDateLong($session['Start_Time'], $session['End_Time'], $session['Event_Type']) . "</div>";
 					$monthAttendedCount++;
 				}
 				else{
-					echo "Abs";
+					echo "<div class=\"att attRed\">" . $session['Module_ID'] . " " . customDateLong($session['Start_Time'], $session['End_Time'], $session['Event_Type']) . "</div>";
 					$monthAbsentCount++;
 				}
 				echo "</br>";
 				$monthLectureCount++;
 			}	
-			echo "Sessions : " . $monthLectureCount . " Attended: " . $monthAttendedCount . " Absent: " . $monthAbsentCount;	
-			echo "</p>";
+			echo "<p>" . $monthLectureCount . " sessions (<font class=\"Green\">" . $monthAttendedCount . "</font> - <font class=\"Red\">" . $monthAbsentCount . "</font>)</p>";
 			
 			//graph stuff
 			echo "<div class=\"dataGraph\" id=\"month_" . $month['Month'] . "_graph\"></div>";
@@ -732,7 +744,7 @@ function attendanceByMonth($mongo_db, $Person_ID, $moduleArray, $monthArray){
 						rendererOptions: {
 							highlightMouseOver: 1,
 							sliceMargin: 3,
-							padding: 5,
+							padding: 10,
 							shadowOffset: 2,
 							startAngle: 30,
 							showDataLabels: true
@@ -783,9 +795,8 @@ function attendanceByMonth($mongo_db, $Person_ID, $moduleArray, $monthArray){
 	
 	echo "<div class=\"grid_12  dataBox\">";
 	echo "<h2>Overall Data</h2>";
-	echo "<p>Total Sessions: " . $overallLectureCount . " (" . $overallAttendedCount . " attended, " . $overallAbsentCount . " absent)";
-	$attendancePercentage = ($overallAttendedCount / $overallLectureCount) * 100;
-	echo "<br>Overall Attendance Percentage: " . $attendancePercentage . "%</p>";
+	$attendancePercentage = round(($overallAttendedCount / $overallLectureCount) * 100, 2);
+	echo "<p>" . $overallLectureCount . " sessions (<font class=\"Green\">" . $overallAttendedCount . "</font> - <font class=\"Red\">" . $overallAbsentCount . "</font>) " . $attendancePercentage . "%</p>";
 	
 	//graph stuff
 	echo "<div class=\"largePie\" id=\"finalPieChart\"></div>";
@@ -910,7 +921,7 @@ function attendanceByMonth($mongo_db, $Person_ID, $moduleArray, $monthArray){
 function attendanceByModule($mongo_db, $Person_ID, $moduleArray){
 	$collection = $mongo_db->am_user_events; // Change to MongoDB relevant collection
 	$current_time = time();
-	echo "<h2>Addentance by Module</h2>";
+	echo "<h2>Attendance by Module</h2>";
 	//Variables to control overall figures
 	$overallLectureCount = 0;
 	$overallAttendedCount = 0;
@@ -937,25 +948,50 @@ function attendanceByModule($mongo_db, $Person_ID, $moduleArray){
 				$sessionArray[] = $lecture;
 			}
 			
-			uasort($sessionArray, 'compareSort');
+			usort($sessionArray, 'compareSort');
+			
 			//output each session and increment counters
-			foreach ($sessionArray as $session){	
-				echo date('d/m/Y', $session['Start_Time']) ." " . date('ga', $session['Start_Time']) . " - " . date('ga', $session['End_Time']) . ": ";
+			$lastMonth = date("F", $sessionArray[0]['Start_Time']);
+			echo "<div class=\"grid_3 first\">";
+			echo "<h4>" . $lastMonth . "</h4>";
+			$count = 1; //1 because of the above div creation
+			foreach ($sessionArray as $session){
+				if($lastMonth != date("F", $session['Start_Time'])){
+					echo "</div>";
+						if($count == 3){
+							echo "<div class=\"grid_3 last\">";
+							$count = 0;
+						}
+						else if($count == 0){
+							echo "<div class=\"grid_3 first clear\">";
+							$count++;
+						}
+						else{
+							echo "<div class=\"grid_3\">";
+							$count++;
+						}
+					$lastMonth = date("F", $session['Start_Time']);
+					echo "<h4>" . $lastMonth . "</h4>";
+				}
 				if($session['Attended'][$Person_ID] == 1){
-					echo "Att";
+					echo "<div class=\"att attGreen\">" . customDateLong($session['Start_Time'], $session['End_Time'], $session['Event_Type']) . "</div>";
 					$moduleAttendedCount++;
 				}
 				else{
-					echo "Abs";
+					echo "<div class=\"att attRed\">" .  customDateLong($session['Start_Time'], $session['End_Time'], $session['Event_Type']) . "</div>";
 					$moduleAbsentCount++;
 				}
 				echo "<br>";
 				$moduleLectureCount++;
 			}//End foreach ($sessionArray as $session){	
-			echo "<br><p>Total Sessions : " . $moduleLectureCount . " Attended: " . $moduleAttendedCount . " Absent: " . $moduleAbsentCount . "</p>";
+			echo "</div>";
+			
+			echo "<div class=\"overallStatContainer\">" .
+			"<h4>Module Analysis</h4>" .
+			"<p>" . $moduleLectureCount . " sessions (<font class=\"Green\">" . $moduleAttendedCount . "</font> - <font class=\"Red\">" . $moduleAbsentCount . "</font>)</p>";
 			
 			//graph stuff
-			echo "<div class=\"dataGraph\" id=\"module_" . $module['Module_ID'] . "_graph\"></div>";
+			echo "<div class=\"smallDataGraph\" id=\"module_" . $module['Module_ID'] . "_graph\"></div>";
 			?>
 			<script language="javascript">
 			plot = jQuery.jqplot('<?php echo "module_" . $module['Module_ID'] . "_graph"; ?>',				
@@ -970,7 +1006,7 @@ function attendanceByModule($mongo_db, $Person_ID, $moduleArray){
 						rendererOptions: {
 							highlightMouseOver: 1,
 							sliceMargin: 3,
-							padding: 5,
+							padding: 10,
 							shadowOffset: 2,
 							startAngle: 30,
 							showDataLabels: true
@@ -1013,7 +1049,7 @@ function attendanceByModule($mongo_db, $Person_ID, $moduleArray){
 				'absent_percentage' => 0
 			);
 		}
-		echo "</div>";
+		echo "</div></div>"; //close opened Div's
 	}//End foreach($moduleArray as $module){
     
 	echo "<div class=\"grid_12\">";
@@ -1021,13 +1057,11 @@ function attendanceByModule($mongo_db, $Person_ID, $moduleArray){
 	echo "</div>";
 	
 	echo "<div class=\"grid_12  dataBox\">";
-	echo "<h2>Overall Data</h2>";
-	echo "<p>Total Sessions: " . $overallLectureCount . " (" . $overallAttendedCount . " attended, " . $overallAbsentCount . " absent)";
-	$attendancePercentage = ($overallAttendedCount / $overallLectureCount) * 100;
-	echo "<br>Overall Attendance Percentage: " . $attendancePercentage . "%</p>";
+	echo "<h2>Overall Data</h2>" .
+	"<p>" . $overallLectureCount . " sessions (<font class=\"Green\">" . $overallAttendedCount . "</font> - <font class=\"Red\">" . $overallAbsentCount . "</font>)</p>";
 	
 	//graph stuff
-	echo "<div class=\"grid_12 largePie\" id=\"finalPieChart\"></div>";
+	echo "<div class=\"largePie\" id=\"finalPieChart\"></div>";
 	
 	echo "</div>"; //end overall column
 	//Final pie chart

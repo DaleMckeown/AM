@@ -53,14 +53,13 @@ h1 { color: #3C2D2C; }
 .lbrb_curve{
 	
 }
-.dataBox{
+.dataBox, .customLinks{
 	text-align:center;
-	min-height:40pt;
+	min-height:10pt;
 	margin: 0 0 15pt 0;
-	border-top:1px solid #000000;
-	border-right:1px solid #777777;
-	border-bottom:1px solid #777777;
-	border-left:1px solid #777777;
+	color:#000000;
+}
+.dataBox{
 	border-radius-bottom-left:2pt;/*IE*/
 	border-radius-bottom-right:2pt;
 	border-bottom-left-radius:2pt;/*Opera*/
@@ -69,9 +68,18 @@ h1 { color: #3C2D2C; }
 	-moz-border-radius-bottomright:2pt;
 	-khtml-border-radius-bottom-left:2pt;/*Webkit*/
 	-khtml-border-radius-bottom-right:2pt;
-	color:#000000;
+	border-top:1px solid #000000;
+	border-right:1px solid #777777;
+	border-bottom:1px solid #777777;
+	border-left:1px solid #777777;
+}
+.customLinks{
+	padding:1px;
 }
 /* custom data box css */
+.dataBox h4{
+	color:#0066FF;
+}
 .dataBox h1, .dataBox h2, .dataBox h3{
 	background: #000000; 
 	background-image: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#111111), to(#444444)); /* Safari 4+, Chrome 1-9 */
@@ -83,15 +91,51 @@ h1 { color: #3C2D2C; }
 	font-weight:normal;
 	letter-spacing:1px;
 }
+.customLinks h1, .customLinks h2, .customLinks h3{
+	background: #555555; 
+	background-image: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#777777), to(#999999)); /* Safari 4+, Chrome 1-9 */
+	background-image: -webkit-linear-gradient(top, #333333, #777777); /* Safari 5.1+, Mobile Safari, Chrome 10+ */
+	background-image: -moz-linear-gradient(top, #777777, #999999); /* Firefox 3.6+ */
+	background-image: -ms-linear-gradient(top, #333333, #777777); /* IE 10+ */
+	background-image: -o-linear-gradient(top, #333333, #777777); /* Opera 11.10+ */
+	color:#000000;
+	font-weight:normal;
+	letter-spacing:1px;
+}
+.customLinks h1:hover, .customLinks h2:hover, .customLinks h3:hover{
+	color:#71BC78;
+	background-image: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#777777), to(#333333)); /* Safari 4+, Chrome 1-9 */
+	background-image: -webkit-linear-gradient(top, #777777, #333333); /* Safari 5.1+, Mobile Safari, Chrome 10+ */
+	background-image: -moz-linear-gradient(top, #777777, #333333); /* Firefox 3.6+ */
+	background-image: -ms-linear-gradient(top, #777777, #333333); /* IE 10+ */
+	background-image: -o-linear-gradient(top, #777777, #333333); /* Opera 11.10+ */
+}
+.dataBox h4{
+	color:#000000;
+	background:#E5E5E5;
+	margin-top:5pt;
+}
+.dataBox h5{
+	color:#000000;
+	background:#E5E5E5;
+	padding:0pt;
+	margin:0pt;
+}
 .dataBox p {
 	text-align:left;
 	padding:1pt 5pt 1pt 5pt;
 }
 .dataGraph{
-	height:150px;
+	height:175px;
 	width:100%;
 	margin-bottom:-15px; /*remove excess margin created by jqPlot */
 }
+.smallDataGraph{
+	height:175px;
+	width:30%;
+	margin:-20pt auto -5pt auto; /*remove excess margin created by jqPlot */
+}
+	
 .largeGraph{
 	clear:both;
 	display:inline-block;
@@ -107,12 +151,38 @@ h1 { color: #3C2D2C; }
 	width:75%;
 }
 .largePie{
-	position:relative;
-	max-height:250pt;
-	max-width:250pt;
-	margin:0pt auto;
-	margin-bottom:-15px; /*remove excess margin created by jqPlot */
+	height:150pt;
+	width:150pt;
+	margin:0pt auto -15pt auto; /*remove excess margin created by jqPlot */
 }
 .center{
 	text-align:center;
+}
+.overallStatContainer{
+	margin:10pt 0 0 0;
+	display:inline-block;
+	position:relative;
+	width:100%;
+}
+.clear{
+	clear:both;
+}
+.att{
+	width:100%;
+	display:inline-block;
+}
+.attGreen{
+	background:#71BC78;
+}
+.attRed{
+	background:#DC143C;
+}
+.Green{
+	color:#71BC78;
+}
+.Red{
+	color:#DC143C;
+}
+.Grey{
+	color:#555555;
 }

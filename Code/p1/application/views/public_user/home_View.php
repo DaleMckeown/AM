@@ -67,16 +67,16 @@
 		echo "You must sign in to see the contents of this page....";
 	}
 	else{ 
-	echo "<h2>Prototype Description</h2>
-		
-		<p>The first major prototype. It is concerned with the following tasks:
-		<ul>
-			<li>Setting up CodeIgniter and transferring all previous work to this framework.</li>
-			<li>Structuring and styling each page following the <a href=\"http://cwd.online.lincoln.ac.uk\">Common Web Design</a>.</li>
-			<li>Connecting to <a href=\"http://data.lincoln.ac.uk\">data.lincoln.ac.uk</a> using the OAuth protocol to log-in students and staff members.</li>
-			<li>Setting up a remote server to host a  <a href=\"http://mongodb.org\">MongoDB</a> NoSQL database.</li>
-		</ul>
-		</p>";
+	echo "<div class=\"notice\">	
+	<p>The first major prototype. Concerned with general setup of services and frameworks, including:
+	<ul>
+		<li>Setting up CodeIgniter and transferring all previous work to this framework.</li>
+		<li>Structuring and styling each page following the <a href=\"http://cwd.online.lincoln.ac.uk\">Common Web Design</a>.</li>
+		<li>Connecting to <a href=\"http://data.lincoln.ac.uk\">data.lincoln.ac.uk</a> using the OAuth protocol to log-in students and staff members.</li>
+		<li>Setting up a remote server to host a  <a href=\"http://mongodb.org\">MongoDB</a> NoSQL database.</li>
+	</ul>
+	</p>
+	</div>";
 	} ?>
     </div>
     </section>

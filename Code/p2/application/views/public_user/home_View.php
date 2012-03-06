@@ -210,14 +210,14 @@
 		echo "You must sign in to see the contents of this page....";
 	}
 	else{ 
-		echo "<h2>Prototype Description</h2>
-			
+		echo "<div class=\"notice\">
 			<p>The second major prototype, focussing on development of the application, including:
 			<ul>
 				<li>Design & implementation of the <a href=\"http://mongodb.org\">MongoDB</a> database structure.</li>
-				<li>Design & implementation of persona's data sets for use as test data within the application.</li>
+				<li>Design & implementation of pseudo attendance data based on real timetabling data, from the <a href=\"https://github.com/unilincoln-ost/Nucleus-Docs/wiki/Events\">UoL Nucleus Events API</a>.</li>
 			</ul>
-			</p>";
+			</p>
+			</div>";
 			
 		echo "<h2>Attendance Data</h2>";
 		if($_SESSION['User_Type'] == "student"){

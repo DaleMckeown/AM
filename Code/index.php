@@ -43,7 +43,7 @@ $currentPrototypeLink = $prototypes['currentPrototypeLink'];
 
 $prototypeDescriptionsArray = array();
 //Set a descriptions array that will be looped through for each prototype's description.
-$prototypeDescriptionsArray[] = "<p>The first major prototype. It is concerned with the following tasks:
+$prototypeDescriptionsArray[] = "<p>The first major prototype. Concerned with general setup of services and frameworks, including:
 	<ul>
 		<li>Setting up CodeIgniter and transferring all previous work to this framework.</li>
 		<li>Structuring and styling each page following the <a href=\"http://cwd.online.lincoln.ac.uk\">Common Web Design</a>.</li>
@@ -54,25 +54,14 @@ $prototypeDescriptionsArray[] = "<p>The first major prototype. It is concerned w
 $prototypeDescriptionsArray[] = "<p>The second major prototype, focussing on development of the application, including:
 	<ul>
 		<li>Design & implementation of the <a href=\"http://mongodb.org\">MongoDB</a> database structure.</li>
-		<li>Design & implementation of pseudo attendance data based on real timetabling data.</li>
+		<li>Design & implementation of pseudo attendance data based on real timetabling data, from the <a href=\"https://github.com/unilincoln-ost/Nucleus-Docs/wiki/Events\">UoL Nucleus Events API</a>.</li>
 	</ul>
 	</p>";
-$prototypeDescriptionsArray[] = "<p>Prototype 3 will analyse intuitive ways to turn raw data into visual objects which may help users to interpret and understand the raw data, 
-while making the process fun. The jquery library <a href=\"http://www.jqplot.com\">jqPlot</a> will be used to represent the student attendance data.
+$prototypeDescriptionsArray[] = "<p>Prototype 3 builds on the raw data provided in prototype 2, and analyses and visualises the students personal attendance profile. The jQuery library <a href=\"http://www.jqplot.com\">jqPlot</a> is used to generate graphs to better visualise this attendance data.
 </p>";
 	
-$futurePrototypeArray = array();
-$futurePrototypeArray[] = "<h3>Prototype 4 (offline)</h3>
-	<p>This prototype is focussed on the staff development side of the data.
-	<ul>
-		<li>Map AM Staff users  to their student's attendance data, and collect the data into groups.</li>
-	</ul>
-	</p>";
-$futurePrototypeArray[] = "<h3>Prototype 5 (offline)</h3>
-<p>Prototype 5 will involve two aspects. The first is social media connectivity (facebook, twitter, etc). The second aspects will involve a
- clean-up of the application, testing and bug fixing.
-
-</p>";
+$prototypeDescriptionsArray[] = "<p>Prototype 4 focuses on providing data analysis and visualisation to teaching staff for the modules they teach. Data is collected, processed
+		 and analysed, providing month by month and by module analysis.</p>";
 ?>
 <!doctype html>
 <!--[if IEMobile 7 ]><html class="no-js iem7" lang="en"><![endif]-->
@@ -159,12 +148,16 @@ $futurePrototypeArray[] = "<h3>Prototype 5 (offline)</h3>
             <h2 id="Prototypes">AM Prototypes</h2>
             <p>Below is a description of each active prototype, describing the tasks for each.</p>
             <?php
-            foreach ($prototypeArray as $prototype){
-                echo "<h3><a href=\"http://www.am.dalemckeown.co.uk/p" . $prototype . "/\">Prototype $prototype</a></h3>";
-                echo $prototypeDescriptionsArray[$prototype -1];
-            }
-			foreach ($futurePrototypeArray as $prototype){
-				echo $prototype;
+			if(!empty($prototypeArray)){
+           		foreach ($prototypeArray as $prototype){
+					echo "<h3><a href=\"http://www.am.dalemckeown.co.uk/p" . $prototype . "/\">Prototype $prototype</a></h3>";
+					echo $prototypeDescriptionsArray[$prototype -1];
+				}
+			}
+			if(!empty($futurePrototypeArray)){
+				foreach ($futurePrototypeArray as $prototype){
+					echo $prototype;
+				}
 			}
             ?>
         </div>    

@@ -9,9 +9,9 @@
 	else{
 		$dataType = '';
 	}
-
 	//little function to allow others to see data.
 	if(!empty($_GET['override'])){
+		$override = true;
 		$collection = $mongo_db->am_users;
 		$searchQuery = "function() {
 			return this.User_ID == '08110296';
@@ -25,13 +25,15 @@
 		$Person_Access_Token = $person['Access_Token'];
 		$Person_User_Type = "student";
 	}
+	else{
+		$override = false;
+	}
 	if(!empty($_SESSION['User_ID'])){
 		$Person_ID = $_SESSION['User_ID'];
 		$Person_Name = $_SESSION['User_Name'];
 		$Person_Access_Token = $_SESSION['Access_Token'];
 		$Person_User_Type = $_SESSION['User_Type'];
 	}
-		
 	//get the prototype id
 	$prototype_id = getPrototypeID();
 	
@@ -83,13 +85,24 @@
 	else{
 		echo "<div class=\"grid_12\">" .
 		"<div class=\"notice\">" .
-		"<p>Prototype 3 will analyse intuitive ways to turn raw data into visual objects which may help users to interpret and understand the raw data, 
-while making the process fun. The jquery library <a href=\"http://www.jqplot.com\">jqPlot</a> will be used to represent the student attendance data.
+		"<p>Prototype 3 builds on the raw data provided in prototype 2, and analyses and visualises the students personal attendance profile. The jQuery
+		 library <a href=\"http://www.jqplot.com\">jqPlot</a> is used to generate graphs to better visualise this attendance data.
 </p>" .
 		"</div>" . 
 		"</div>";
 		
 		if($Person_User_Type == "student"){
+			echo "<div class=\"grid_12\"><h2>View your attendance data by.....</h2></div>";
+			if($override == true){
+				$linkString = "?override=true&dataType=";
+			}
+			else{
+				$linkString = "?dataType=";
+			}
+			echo "<a href=\"" . $base_url . $linkString . "byWeek\"><div class=\"grid_4 customLinks\"><h3>Week</h3></div></a>";
+			echo "<a href=\"" . $base_url . $linkString . "byMonth\"><div class=\"grid_4 customLinks\"><h3>Month</h3></div></a>";
+			echo "<a href=\"" . $base_url . $linkString . "byModule\"><div class=\"grid_4 last customLinks\"><h3>Module</h3></div></a>";
+			
 			echo "<div class=\"grid_12\"><h2>General Information</h2></div>";
 			// Get data from Nucleus
 			$params = array('access_token' => $Person_Access_Token);
@@ -108,28 +121,14 @@ while making the process fun. The jquery library <a href=\"http://www.jqplot.com
 				$person_course_id = $json['results'][0]['course']['id'];
 				$person_course_title = $json['results'][0]['course']['title'];
 				$person_units = $json['results'][0]['units']; //further array of arrays
+				asort($person_units); //sort the array
 				echo "<div class=\"grid_4 dataBox\">";
 				echo "<h3>Course Information</h3>";
 				echo "<p>Course ID: " . $person_course_id . "<br>" .
 				"Course Title: " . $person_course_title . "<br>" .
 				"Course level: " . $person_course_level . "</p>";
 				echo "</div>";
-				
-				echo "<div class=\"grid_8 last dataBox\">";
-				echo "<h3>Module Information</h3>";
-				asort($person_units);
-				echo "<p>";
-				$moduleArray = array(); //array of modules, used to retrieve lecture data
-				foreach ($person_units as $unit){
-					echo "<b>" . $unit['id'] . "</b> - " . $unit['title'] . "<br>";
-					$moduleArray[] = array(
-					'Module_ID' => $unit['id'],
-					'Module_Title' => $unit['title']
-					);
-				}
-				echo "</p>";
-				echo "</div>";
-				// Get event data from nucleus
+				//Get future events for both next module info and to work out attendance data later on
 				$params = array(
 					'access_token' => $Person_Access_Token
 				);
@@ -139,6 +138,58 @@ while making the process fun. The jquery library <a href=\"http://www.jqplot.com
 					'params' => $params
 				);
 				$result2 = getNucleusData($mongo_db, $data);
+				
+				echo "<div class=\"grid_4 dataBox\">";
+				echo "<h3>Module Information</h3><p>";
+				$moduleArray = array(); //array of modules, used to retrieve lecture data
+				//Output module info
+				foreach ($person_units as $unit){
+					echo "<b>" . $unit['id'] . "</b> - " . $unit['title'] . "<br>";
+					//Add module data to moduleArray
+					$moduleArray[] = array(
+						'Module_ID' => $unit['id'],
+						'Module_Title' => $unit['title']
+					);
+				}
+				echo "</p></div>";
+				
+				//next module info.
+				//first build two arrays, one to check and provide an index for, and the other to store data.
+				$moduleCount = count($person_units); //var to check 
+				$pDataChecker = array(); //array to hold data to check against
+				$pData = array(); //array to store actual data
+				foreach($result2['Data']['results'] as $res){
+					if(!in_array($res['cmis_course']['id'], $pDataChecker)){
+						$pDataChecker[] = $res['cmis_course']['id'];
+						$pData[] = array(
+							'Module_ID' => $res['cmis_course']['id'],
+							'Event_Type' => $res['cmis_event_type'],
+							'Event_Start' => $res['event_unixstart'],
+							'Event_End' => $res['event_unixend'],
+							'Event_Location' => key($res['event_location_raw'])
+						);
+						if(count($pData) == $moduleCount){ //if the array is the size of the module count, break from the loop to save computation.
+							break;
+						}
+					}
+				}
+				echo "<div class=\"grid_4 last dataBox\">";
+				echo "<h3>Upcoming Events</h3><p>";
+				foreach ($person_units as $unit){
+					echo "<b>" . $unit['id'] . "</b> - ";
+					//Check for future data in our above pData array
+					if(in_array($unit['id'], $pDataChecker)){
+						$key = array_search($unit['id'], $pDataChecker);
+						echo $pData[$key]['Event_Type'] . " in " . $pData[$key]['Event_Location'] . " (" . customDateShort($pData[$key]['Event_Start'], $pData[$key]['Event_End']) . ")<br>";
+					}
+					else{
+						echo "<font class=\"Grey\">(no upcoming event data found)</font><br>";
+					}
+
+				}
+				echo "</p></div>";
+				
+				// Get event data from nucleus
 				if($result2['Success'] == true){ // If getNucleusData does not return an error
 					$json = $result2['Data'];
 					$event_results = $json['results'];
@@ -184,7 +235,7 @@ while making the process fun. The jquery library <a href=\"http://www.jqplot.com
 			echo $person_jobtitle = $json['results'][0]['jobtitle'];
 		}*/
 		else{
-			echo "Other Set";
+			echo "Eh? You don't appear to be a student or member of staff at the University of Lincoln.";
 		}
 	} ?>
     </section>
